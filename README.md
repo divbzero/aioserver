@@ -1,8 +1,6 @@
 aioserver
 ===
 
-*An async web framework for humans*
-
 Installation
 ---
 
@@ -14,7 +12,6 @@ Usage
 ---
 
 ```python
-from aiohttp import web
 from aioserver import Application
 
 app = Application()
