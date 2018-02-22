@@ -32,17 +32,24 @@ class Application(web.Application):
         return wrapped_handler
 
     def make_response(self, value):
+        if not isinstance(value, tuple):
+            status, value = 200, value
+        elif len(value) == 2:
+            status, value = value
+        else:
+            raise TypeError()
         if isinstance(value, web.Response):
+            value.set_status(status)
             return value
         elif isinstance(value, bytes):
-            return web.Response(body=value)
+            return web.Response(status=status, body=value)
         elif isinstance(value, str):
-            return web.Response(text=value)
-        elif isinstance(value, dict):
+            return web.Response(status=status, text=value)
+        elif isinstance(value, (dict, list)):
             with io.StringIO() as stream:
                 json.dump(value, stream, ensure_ascii=False, allow_nan=False, indent=4, sort_keys=True)
                 stream.write('\n')
-                return web.Response(text=stream.getvalue(), content_type='application/json')
+                return web.Response(status=status, text=stream.getvalue(), content_type='application/json')
         else:
             raise TypeError()
 
