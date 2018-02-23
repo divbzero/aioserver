@@ -33,23 +33,27 @@ class Application(web.Application):
 
     def make_response(self, value):
         if not isinstance(value, tuple):
-            status, value = 200, value
+            status, headers, value = 200, {}, value
         elif len(value) == 2:
             status, value = value
+            headers = {}
+        elif len(value) == 3:
+            status, headers, value = value
         else:
             raise TypeError()
         if isinstance(value, web.Response):
             value.set_status(status)
+            value.headers.update(headers)
             return value
         elif isinstance(value, bytes):
-            return web.Response(status=status, body=value)
+            return web.Response(status=status, headers=headers, body=value)
         elif isinstance(value, str):
-            return web.Response(status=status, text=value)
+            return web.Response(status=status, headers=headers, text=value)
         elif isinstance(value, (dict, list)):
             with io.StringIO() as stream:
                 json.dump(value, stream, ensure_ascii=False, allow_nan=False, indent=4, sort_keys=True)
                 stream.write('\n')
-                return web.Response(status=status, text=stream.getvalue(), content_type='application/json')
+                return web.Response(status=status, headers=headers, text=stream.getvalue(), content_type='application/json')
         else:
             raise TypeError()
 
