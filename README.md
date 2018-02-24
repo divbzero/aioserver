@@ -42,7 +42,7 @@ Changelog
 
 - Decorator-based request handlers
 
-### v0.3.0
+### v0.4.0
 
 * Allow handler to specify HTTP response status
 * Allow handler to specify additional HTTP headers
