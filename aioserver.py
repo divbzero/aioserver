@@ -32,16 +32,28 @@ class Application(web.Application):
         return wrapped_handler
 
     def make_response(self, value):
-        if not isinstance(value, tuple):
+        if isinstance(value, int):
+            # format: <status>
+            # example: return 500
+            status, headers, value = value, {}, None
+        elif not isinstance(value, tuple):
+            # format: <body>
+            # example: return {'message': 'Hello, World!'}
             status, headers, value = 200, {}, value
         elif len(value) == 2:
+            # format: <status>, <body>
+            # example: return 404, {'message': 'Not Found'}
             status, value = value
             headers = {}
         elif len(value) == 3:
+            # format: <status>, <headers>, <body>
+            # example: return 302, {'Location': 'https://www.example.com/'}, {'message': 'Found'}
             status, headers, value = value
         else:
             raise TypeError()
-        if isinstance(value, web.Response):
+        if value is None:
+            return web.Response(status=status, headers=headers)
+        elif isinstance(value, web.Response):
             value.set_status(status)
             value.headers.update(headers)
             return value

@@ -28,6 +28,10 @@ async def found(request):
 async def not_found(request):
     return 404, {'message': 'Not Found'}
 
+@app.get('/server-error')
+async def server_error(request):
+    return 500
+
 app.run(host='127.0.0.1', port=8080)
 ```
 
