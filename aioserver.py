@@ -1,6 +1,7 @@
 import io
 import json
 from functools import partial, reduce, wraps
+from xml.etree.ElementTree import ElementTree
 
 from aiohttp import web
 
@@ -68,6 +69,10 @@ class Application(web.Application):
                 json.dump(body, stream, ensure_ascii=False, allow_nan=False, indent=4, sort_keys=True)
                 stream.write('\n')
                 return web.Response(status=status, headers=headers, text=stream.getvalue(), content_type='application/json')
+        elif isinstance(body, ElementTree):
+            with io.StringIO() as stream:
+                body.write(stream, encoding='unicode', xml_declaration=True)
+                return web.Response(status=status, headers=headers, text=stream.getvalue(), content_type='text/xml')
         else:
             raise TypeError()
 
