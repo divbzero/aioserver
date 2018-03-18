@@ -47,3 +47,8 @@ Changelog
 * Allow handler to specify HTTP response status
 * Allow handler to specify additional HTTP headers
 
+
+### v0.5.0
+
+* Serialize XML ElementTree as text/xml response
+
