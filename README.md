@@ -32,6 +32,16 @@ async def not_found(request):
 async def server_error(request):
     return 500
 
+@app.cors('*')
+@app.get('/cross-origin-resource-sharing')
+async def cross_origin_resource_sharing(request):
+    return {'message': 'Greetings from a different origin!'}
+
+@app.cors('*', ['X-Custom-Header'])
+@app.get('/cross-origin-resource-sharing')
+async def cross_origin_header_sharing(request):
+    return 200, {'X-Custom-Header': 'share-this-header-too'}, {'message': 'Hello!'}
+
 app.run(host='127.0.0.1', port=8080)
 ```
 

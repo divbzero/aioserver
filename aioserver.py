@@ -26,13 +26,37 @@ class Application(web.Application):
     def delete(self, path):
         return compose(tee(partial(self.router.add_delete, path)), self.wrap_handler)
 
+    def cors(self, access_control_allow_origin, access_control_expose_headers=[], access_control_allow_credentials=False):
+        # define CORS headers
+        cors_headers = {}
+        cors_headers['Access-Control-Allow-Origin'] = access_control_allow_origin
+        if access_control_allow_credentials:
+            cors_headers['Access-Control-Allow-Credentials'] = 'true'
+        if access_control_expose_headers:
+            cors_headers['Access-Control-Expose-Headers'] = ', '.join(access_control_expose_headers)
+        # add CORS headers to handler
+        def add_cors_headers(handler):
+            try:
+                headers = handler.__headers__
+            except AttributeError:
+                headers = handler.__headers__ = {}
+            headers.update(cors_headers)
+            return handler
+        return add_cors_headers
+
     def wrap_handler(self, handler):
+        # get additional headers
+        try:
+            headers = handler.__headers__
+        except AttributeError:
+            headers = handler.__headers__ = {}
+        # wrap handler to return web response
         @wraps(handler)
         async def wrapped_handler(*args, **kargs):
-            return self.make_response(await handler(*args, **kargs))
+            return self.make_response(await handler(*args, **kargs), headers)
         return wrapped_handler
 
-    def make_response(self, value):
+    def make_response(self, value, additional_headers={}):
         # extract <status>, <headers>, <body> from value
         if isinstance(value, int):
             # format: <status>
@@ -53,6 +77,7 @@ class Application(web.Application):
             status, headers, body = value
         else:
             raise TypeError()
+        headers.update(additional_headers)
         # return web response
         if body is None:
             return web.Response(status=status, headers=headers)
