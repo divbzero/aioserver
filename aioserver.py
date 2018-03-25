@@ -1,5 +1,6 @@
 import io
 import json
+from collections import defaultdict
 from functools import partial, reduce, wraps
 from xml.etree.ElementTree import ElementTree
 
@@ -101,9 +102,48 @@ class Application(web.Application):
         else:
             raise TypeError()
 
+    def update_options(self):
+        for resource in self.router.resources():
+            # gather CORS parameters
+            origin = None
+            credentials = False
+            headers = set()
+            methods = set()
+            for route in resource:
+                try:
+                    origin = route.handler.__headers__['Access-Control-Allow-Origin']
+                except KeyError:
+                    continue
+                if route.handler.__headers__.get('Access-Control-Allow-Credentials'):
+                    credentials = True
+                try:
+                    headers.update(route.handler.__headers__['Access-Control-Expose-Headers'].split(', '))
+                except KeyError:
+                    pass
+                methods.add(route.method.upper())
+            if 'OPTIONS' in methods or origin is None:
+                continue
+            else:
+                methods.add('OPTIONS')
+            # define CORS preflight headers
+            cors_preflight_headers = {}
+            cors_preflight_headers['Access-Control-Allow-Origin'] = origin
+            if credentials:
+                cors_preflight_headers['Access-Control-Allow-Credentials'] = 'true'
+            if headers:
+                cors_preflight_headers['Access-Control-Allow-Headers'] = ', '.join(sorted(headers))
+            cors_preflight_headers['Access-Control-Allow-Methods'] = ', '.join(sorted(methods))
+            # add CORS preflight headers to OPTIONS handler
+            async def options(request):
+                return 200
+            options.__headers__ = cors_preflight_headers
+            resource.add_route('OPTIONS', self.wrap_handler(options))
+
     @property
     def run(self):
+        self.update_options()
         return partial(web.run_app, self)
+
 
 def compose(*functions):
     return reduce(lambda f, g: lambda x: f(g(x)), functions)
