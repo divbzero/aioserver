@@ -38,7 +38,7 @@ async def cross_origin_resource_sharing(request):
     return {'message': 'Greetings from a different origin!'}
 
 @app.cors('*', ['X-Custom-Header'])
-@app.get('/cross-origin-resource-sharing')
+@app.get('/cross-origin-header-sharing')
 async def cross_origin_header_sharing(request):
     return 200, {'X-Custom-Header': 'share-this-header-too'}, {'message': 'Hello!'}
 
