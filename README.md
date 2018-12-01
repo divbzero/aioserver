@@ -54,11 +54,14 @@ Changelog
 
 ### v0.4.0
 
-* Allow handler to specify HTTP response status
-* Allow handler to specify additional HTTP headers
-
+- Allow handler to specify HTTP response status
+- Allow handler to specify additional HTTP headers
 
 ### v0.5.0
 
-* Serialize XML ElementTree as text/xml response
+- Serialize XML ElementTree as text/xml response
+
+### v0.6.0
+
+- Decorator-based CORS
 

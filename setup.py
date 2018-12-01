@@ -27,7 +27,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.5.0',
+    version='0.6.0',
 
     description='An async web framework for humans',
     long_description=long_description,
@@ -64,6 +64,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
 
         # Related topics
         'Topic :: Internet',
@@ -72,7 +73,7 @@ setup(
     ],
 
     # What does your project relate to?
-    keywords='asyncio aiohttp async web framework humans simple HTTP HTTPS server forhumans',
+    keywords='asyncio aiohttp async web framework forhumans simple HTTP server CORS',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
