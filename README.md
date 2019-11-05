@@ -1,6 +1,3 @@
-aioserver
-===
-
 Installation
 ---
 
@@ -64,3 +61,7 @@ Changelog
 ### v0.6.0
 
 - Decorator-based CORS
+
+### v0.6.2
+
+- Fix project description
