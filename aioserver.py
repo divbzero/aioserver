@@ -10,24 +10,25 @@ __all__ = ['Application']
 
 class Application(web.Application):
 
-    def route(self, path):
-        return compose(tee(partial(self.router.add_route, '*', path)), self.wrap_handler)
+    def route(self, path, method='*'):
+        return partial(self.add_route, method, path)
     def options(self, path):
-        return compose(tee(partial(self.router.add_options, path)), self.wrap_handler)
+        return partial(self.add_route, 'OPTIONS', path)
     def head(self, path):
-        return compose(tee(partial(self.router.add_head, path)), self.wrap_handler)
+        return partial(self.add_route, 'HEAD', path)
     def get(self, path):
-        return compose(tee(partial(self.router.add_get, path)), self.wrap_handler)
+        return partial(self.add_route, 'GET', path)
     def post(self, path):
-        return compose(tee(partial(self.router.add_post, path)), self.wrap_handler)
+        return partial(self.add_route, 'POST', path)
     def put(self, path):
-        return compose(tee(partial(self.router.add_put, path)), self.wrap_handler)
+        return partial(self.add_route, 'PUT', path)
     def patch(self, path):
-        return compose(tee(partial(self.router.add_patch, path)), self.wrap_handler)
+        return partial(self.add_route, 'PATCH', path)
     def delete(self, path):
-        return compose(tee(partial(self.router.add_delete, path)), self.wrap_handler)
-
+        return partial(self.add_route, 'DELETE', path)
+        
     def cors(self, access_control_allow_origin, access_control_expose_headers=[], access_control_allow_credentials=False):
+        '''Decorator to add CORS headers to a handler.'''
         # define CORS headers
         cors_headers = {}
         cors_headers['Access-Control-Allow-Origin'] = access_control_allow_origin
@@ -37,24 +38,68 @@ class Application(web.Application):
             cors_headers['Access-Control-Expose-Headers'] = ', '.join(access_control_expose_headers)
         # add CORS headers to handler
         def add_cors_headers(handler):
-            try:
-                headers = handler.__headers__
-            except AttributeError:
-                headers = handler.__headers__ = {}
-            headers.update(cors_headers)
+            handler = self.ensure_response(handler)
+            handler.__headers__.update(cors_headers)
             return handler
         return add_cors_headers
 
-    def wrap_handler(self, handler):
-        # get additional headers
+    def middleware(self, middleware_handler):
+        '''Decorator for creating middleware.
+        
+        Middleware should be defined by decorating a middleware handler:
+        
+            @app.middleware
+            async def always_ok(request, next):
+                response = await next(request)
+                response.set_status(200, 'OK')
+                return response
+                
+        The middleware handler should take the `request` object and the `next`
+        handler as arguments and return a response.
+        
+        The middleware can then be applied to request handlers:
+        
+            @always_ok
+            @app.get('/not-found-but-still-ok')
+            async def not_found_but_still_ok(request):
+                return 404, {'message': 'Not found but still OK!'}
+                
+        '''
+        return partial(self.wrap_handler, middleware_handler=middleware_handler)
+
+    def add_route(self, method, path, handler):
+        handler = self.ensure_response(handler)
+        handler.__routes__.append(self.router.add_route(method, path, handler))
+        return handler
+
+    def wrap_handler(self, handler, middleware_handler):
+        '''Wrap a request handler with a middleware handler.'''
+        handler = self.ensure_response(handler)
+        @wraps(handler)
+        async def wrapped_handler(request):
+            return await middleware_handler(request, handler)
+        for route in handler.__routes__:
+            route._handler = wrapped_handler
+        wrapped_handler.__headers__ = handler.__headers__
+        wrapped_handler.__routes__ = handler.__routes__
+        return wrapped_handler
+        
+    def ensure_response(self, handler):
         try:
             headers = handler.__headers__
+            routes = handler.__routes__
+            previously_wrapped = True
         except AttributeError:
-            headers = handler.__headers__ = {}
-        # wrap handler to return web response
+            headers = {}
+            routes = []
+            previously_wrapped = False
+        if previously_wrapped:
+            return handler
         @wraps(handler)
-        async def wrapped_handler(*args, **kargs):
-            return self.make_response(await handler(*args, **kargs), headers)
+        async def wrapped_handler(request):
+            return self.make_response(await handler(request), headers)
+        wrapped_handler.__headers__ = headers
+        wrapped_handler.__routes__ = routes
         return wrapped_handler
 
     def make_response(self, value, additional_headers={}):
@@ -134,23 +179,13 @@ class Application(web.Application):
                 cors_preflight_headers['Access-Control-Allow-Headers'] = ', '.join(sorted(headers))
             cors_preflight_headers['Access-Control-Allow-Methods'] = ', '.join(sorted(methods))
             # add CORS preflight headers to OPTIONS handler
+            @self.ensure_response
             async def options(request):
                 return 200
-            options.__headers__ = cors_preflight_headers
-            resource.add_route('OPTIONS', self.wrap_handler(options))
+            options.__headers__.update(cors_preflight_headers)
+            resource.add_route('OPTIONS', self.ensure_response(options))
 
     @property
     def run(self):
         self.update_options()
         return partial(web.run_app, self)
-
-
-def compose(*functions):
-    return reduce(lambda f, g: lambda x: f(g(x)), functions)
-
-def tee(function):
-    @wraps(function)
-    def wrapped_function(x):
-        function(x)
-        return x
-    return wrapped_function

@@ -42,6 +42,28 @@ async def cross_origin_header_sharing(request):
 app.run(host='127.0.0.1', port=8080)
 ```
 
+Advanced Usage
+---
+
+```python
+from aioserver import Application
+
+app = Application()
+
+@app.middleware
+async def always_ok(request, next):
+    response = await next(request)
+    response.set_status(200, 'OK')
+    return response
+
+@always_ok
+@app.get('/not-found-but-still-ok')
+async def not_found_but_still_ok(request):
+    return 404, {'message': 'Not found but still OK!'}
+
+app.run(host='127.0.0.1', port=8080)
+```
+
 Changelog
 ---
 
