@@ -2,11 +2,20 @@ import io
 import json
 from collections import defaultdict
 from functools import partial, reduce, wraps
+from uuid import uuid4
 from xml.etree.ElementTree import ElementTree
 
 from aiohttp import web
 
 __all__ = ['Application']
+
+seconds = 1
+minutes = 60 * seconds
+hours = 60 * minutes
+days = 24 * hours
+weeks = 7 * days
+months = 30 * days
+years = 365 * days
 
 class Application(web.Application):
 
@@ -42,6 +51,22 @@ class Application(web.Application):
             handler.__headers__.update(cors_headers)
             return handler
         return add_cors_headers
+
+    def session(self, max_age=10 * years, secure=True, httponly=True, **kargs):
+        '''Decorator to get and set session identfier as a cookie.'''
+        @self.middleware
+        async def session_middleware(request, next):
+            # get session on request
+            try:
+                request.session = request.cookies['session']
+            except KeyError:
+                request.session = str(uuid4())
+            # run next handler
+            response = await next(request)
+            # set session on response
+            response.set_cookie('session', request.session, max_age=max_age, secure=secure, httponly=httponly, **kargs)
+            return response
+        return session_middleware
 
     def middleware(self, middleware_handler):
         '''Decorator for creating middleware.

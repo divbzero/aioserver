@@ -46,7 +46,7 @@ Advanced Usage
 ---
 
 ```python
-from aioserver import Application
+from aioserver import Application, hours
 
 app = Application()
 
@@ -60,6 +60,12 @@ async def always_ok(request, next):
 @app.get('/not-found-but-still-ok')
 async def not_found_but_still_ok(request):
     return 404, {'message': 'Not found but still OK!'}
+
+@app.get('/session-cookie')
+@app.session(max_age=24 * hours)
+async def session_cookie(request):
+    print(f'session uuid {request.session}')
+    return 200, {'message': 'Session UUID set as cookie for 24 hours.'}
 
 app.run(host='127.0.0.1', port=8080)
 ```
