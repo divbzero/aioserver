@@ -8,11 +8,17 @@ pip install aioserver
 Usage
 ---
 
+#### Create Application
+
 ```python
 from aioserver import Application
 
 app = Application()
+```
 
+#### Basic Routes
+
+```python
 @app.get('/')
 async def index(request):
     return {'message': 'Hello, world!'}
@@ -28,7 +34,11 @@ async def not_found(request):
 @app.get('/server-error')
 async def server_error(request):
     return 500
+```
 
+#### CORS Headers
+
+```python
 @app.cors('*')
 @app.get('/cross-origin-resource-sharing')
 async def cross_origin_resource_sharing(request):
@@ -38,18 +48,23 @@ async def cross_origin_resource_sharing(request):
 @app.get('/cross-origin-header-sharing')
 async def cross_origin_header_sharing(request):
     return 200, {'X-Custom-Header': 'share-this-header-too'}, {'message': 'Hello!'}
-
-app.run(host='127.0.0.1', port=8080)
 ```
 
-Advanced Usage
----
+### Session Cookie
 
 ```python
-from aioserver import Application, hours
+from aioserver import hours
 
-app = Application()
+@app.get('/session-cookie')
+@app.session(max_age=24 * hours)
+async def session_cookie(request):
+    print(f'session uuid {request.session}')
+    return 200, {'message': 'Session UUID set as cookie for 24 hours.'}
+```
 
+#### Custom Middleware
+
+```python
 @app.middleware
 async def always_ok(request, next):
     response = await next(request)
@@ -60,13 +75,11 @@ async def always_ok(request, next):
 @app.get('/not-found-but-still-ok')
 async def not_found_but_still_ok(request):
     return 404, {'message': 'Not found but still OK!'}
+```
 
-@app.get('/session-cookie')
-@app.session(max_age=24 * hours)
-async def session_cookie(request):
-    print(f'session uuid {request.session}')
-    return 200, {'message': 'Session UUID set as cookie for 24 hours.'}
+#### Run Application
 
+```python
 app.run(host='127.0.0.1', port=8080)
 ```
 
