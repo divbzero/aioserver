@@ -55,32 +55,35 @@ class Application(web.Application):
     def session(self, max_age=10 * years, secure=True, httponly=True, **kargs):
         '''Decorator to get and set session identfier as a cookie.'''
         @self.middleware
-        async def session_middleware(request, next):
+        async def session_middleware(request, handler):
             # get session on request
             try:
                 request.session = request.cookies['session']
             except KeyError:
                 request.session = str(uuid4())
             # run next handler
-            response = await next(request)
+            response = await handler(request)
             # set session on response
             response.set_cookie('session', request.session, max_age=max_age, secure=secure, httponly=httponly, **kargs)
             return response
         return session_middleware
 
+    def use(self, middleware_handler):
+        '''Add middleware to all request handlers.'''
+        self.middlewares.append(web.middleware(middleware_handler))
+        return middleware_handler
+
     def middleware(self, middleware_handler):
-        '''Decorator for creating middleware.
+        '''Decorator to add middleware to a specific request handler.
         
-        Middleware should be defined by decorating a middleware handler:
+        The middleware handler should take the `request` object and the
+        request `handler` as arguments and return a response:
         
             @app.middleware
-            async def always_ok(request, next):
-                response = await next(request)
+            async def always_ok(request, handler):
+                response = await handler(request)
                 response.set_status(200, 'OK')
                 return response
-                
-        The middleware handler should take the `request` object and the `next`
-        handler as arguments and return a response.
         
         The middleware can then be applied to request handlers:
         

@@ -64,10 +64,12 @@ async def session_cookie(request):
 
 #### Custom Middleware
 
+Route-specific middleware:
+
 ```python
 @app.middleware
-async def always_ok(request, next):
-    response = await next(request)
+async def always_ok(request, handler):
+    response = await handler(request)
     response.set_status(200, 'OK')
     return response
 
@@ -75,6 +77,17 @@ async def always_ok(request, next):
 @app.get('/not-found-but-still-ok')
 async def not_found_but_still_ok(request):
     return 404, {'message': 'Not found but still OK!'}
+```
+
+Global middleware:
+
+```python
+async def strict_transport_security(request, handler):
+    response = await handler(request)
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000'
+    return response
+
+app.use(strict_transport_security)
 ```
 
 #### Run Application
