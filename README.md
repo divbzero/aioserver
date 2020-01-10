@@ -53,7 +53,7 @@ async def cross_origin_header_sharing(request):
 ### Session Cookie
 
 ```python
-from aioserver import hours
+from aioserver.middleware import hours
 
 @app.get('/session-cookie')
 @app.session(max_age=24 * hours)

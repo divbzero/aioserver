@@ -3,26 +3,24 @@ import io
 import json
 from collections import defaultdict
 from functools import partial, reduce, wraps
-from uuid import uuid4
 from xml.etree.ElementTree import ElementTree
 
 from aiohttp import web
 
 __all__ = ['Application']
 
-seconds = 1
-minutes = 60 * seconds
-hours = 60 * minutes
-days = 24 * hours
-weeks = 7 * days
-months = 30 * days
-years = 365 * days
 
 class Application(web.Application):
 
     def __init__(self, *args, **kargs):
         super().__init__(*args, **kargs)
         self.handler_middlewares = []
+        try:
+            from . import middleware
+        except ImportError:
+            return
+        for name in middleware.__all__:
+            setattr(self, name, compose(self.middleware, getattr(middleware, name)))
 
     def route(self, path, method='*'):
         return partial(self.add_route, method, path)
@@ -40,38 +38,6 @@ class Application(web.Application):
         return partial(self.add_route, 'PATCH', path)
     def delete(self, path):
         return partial(self.add_route, 'DELETE', path)
-        
-    def cors(self, access_control_allow_origin, access_control_expose_headers=[], access_control_allow_credentials=False):
-        '''Decorator to add CORS headers to a handler.'''
-        # define CORS headers
-        cors_headers = {}
-        cors_headers['Access-Control-Allow-Origin'] = access_control_allow_origin
-        if access_control_allow_credentials:
-            cors_headers['Access-Control-Allow-Credentials'] = 'true'
-        if access_control_expose_headers:
-            cors_headers['Access-Control-Expose-Headers'] = ', '.join(access_control_expose_headers)
-        # add CORS headers to handler
-        @self.middleware
-        def cors_middleware(handler):
-            handler.__headers__.update(cors_headers)
-            return handler
-        return cors_middleware
-
-    def session(self, max_age=10 * years, secure=True, httponly=True, **kargs):
-        '''Decorator to get and set session identfier as a cookie.'''
-        @self.middleware
-        async def session_middleware(request, handler):
-            # get session on request
-            try:
-                request.session = request.cookies['session']
-            except KeyError:
-                request.session = str(uuid4())
-            # run next handler
-            response = await handler(request)
-            # set session on response
-            response.set_cookie('session', request.session, max_age=max_age, secure=secure, httponly=httponly, **kargs)
-            return response
-        return session_middleware
 
     def use(self, middleware_handler):
         '''Add middleware to all request handlers.'''
@@ -246,3 +212,7 @@ class Application(web.Application):
         self.update_options()
         self.update_handlers()
         return partial(web.run_app, self)
+
+
+def compose(*functions):
+    return reduce(lambda f, g: lambda *args, **kargs: f(g(*args, **kargs)), functions)
