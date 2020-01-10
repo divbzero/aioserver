@@ -1,3 +1,4 @@
+import inspect
 import io
 import json
 from collections import defaultdict
@@ -18,6 +19,10 @@ months = 30 * days
 years = 365 * days
 
 class Application(web.Application):
+
+    def __init__(self, *args, **kargs):
+        super().__init__(*args, **kargs)
+        self.handler_middlewares = []
 
     def route(self, path, method='*'):
         return partial(self.add_route, method, path)
@@ -46,11 +51,11 @@ class Application(web.Application):
         if access_control_expose_headers:
             cors_headers['Access-Control-Expose-Headers'] = ', '.join(access_control_expose_headers)
         # add CORS headers to handler
-        def add_cors_headers(handler):
-            handler = self.ensure_response(handler)
+        @self.middleware
+        def cors_middleware(handler):
             handler.__headers__.update(cors_headers)
             return handler
-        return add_cors_headers
+        return cors_middleware
 
     def session(self, max_age=10 * years, secure=True, httponly=True, **kargs):
         '''Decorator to get and set session identfier as a cookie.'''
@@ -70,7 +75,15 @@ class Application(web.Application):
 
     def use(self, middleware_handler):
         '''Add middleware to all request handlers.'''
-        self.middlewares.append(web.middleware(middleware_handler))
+        argnames = list(inspect.signature(middleware_handler).parameters)
+        if argnames == ['request', 'handler']:
+            # request middleware accepts (request, handler) arguments and returns response
+            self.middlewares.append(web.middleware(middleware_handler))
+        elif argnames[0:1] == ['handler']:
+            # handler middleware accepts (handler) argument and returns handler
+            self.handler_middlewares.append(middleware_handler)
+        else:
+            raise ValueError('middleware_handler function signature must be (request, handler) or (handler)')
         return middleware_handler
 
     def middleware(self, middleware_handler):
@@ -93,7 +106,16 @@ class Application(web.Application):
                 return 404, {'message': 'Not found but still OK!'}
                 
         '''
-        return partial(self.wrap_handler, middleware_handler=middleware_handler)
+        argnames = list(inspect.signature(middleware_handler).parameters)
+        if argnames == ['request', 'handler']:
+            # request middleware accepts (request, handler) arguments and returns response
+            return partial(self.wrap_handler, middleware_handler=middleware_handler)
+        elif argnames[0:1] == ['handler']:
+            # handler middleware accepts (handler) argument and returns handler
+            return middleware_handler
+        else:
+            raise ValueError('middleware_handler function signature must be (request, handler) or (handler)')
+        return middleware_handler
 
     def add_route(self, method, path, handler):
         handler = self.ensure_response(handler)
@@ -212,8 +234,15 @@ class Application(web.Application):
                 return 200
             options.__headers__.update(cors_preflight_headers)
             resource.add_route('OPTIONS', self.ensure_response(options))
+            
+    def update_handlers(self):
+        for resource in self.router.resources():
+            for route in resource:
+                for handler_middleware in self.handler_middlewares:
+                    route.handler = self.wrap_handler(route.handler, handler_middleware)
 
     @property
     def run(self):
         self.update_options()
+        self.update_handlers()
         return partial(web.run_app, self)
