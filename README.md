@@ -5,6 +5,23 @@ Installation
 pip install aioserver
 ```
 
+## Getting Started
+
+Start a test server with the examples in the **Usage** section below:
+
+```
+make test
+```
+
+Make requests against the running test server:
+
+ ```
+curl -v localhost:8080
+curl -v localhost:8080/found
+curl -v localhost:8080/not-found
+curl -v localhost:8080/server-error
+ ```
+
 Usage
 ---
 
@@ -119,3 +136,11 @@ Changelog
 ### v0.6.2
 
 - Fix project description
+
+### v0.7.0
+
+- Route-specific middleware using decorators
+- Global middleware using `app.use(...)`
+- Refactor CORS headers as middleware
+- Add session cookie as middleware
+
