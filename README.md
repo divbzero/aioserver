@@ -144,3 +144,7 @@ Changelog
 - Refactor CORS headers as middleware
 - Add session cookie as middleware
 
+### v0.7.1
+
+- Package as a module instead of as a single file
+
