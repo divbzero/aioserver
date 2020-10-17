@@ -91,6 +91,8 @@ class Application(web.Application):
     def wrap_handler(self, handler, middleware_handler):
         '''Wrap a request handler with a middleware handler.'''
         handler = self.ensure_response(handler)
+        if middleware_handler in handler.__middlewares__:
+            return handler
         @wraps(handler)
         async def wrapped_handler(request):
             return await middleware_handler(request, handler)
@@ -98,16 +100,19 @@ class Application(web.Application):
             route._handler = wrapped_handler
         wrapped_handler.__headers__ = handler.__headers__
         wrapped_handler.__routes__ = handler.__routes__
+        wrapped_handler.__middlewares__ = handler.__middlewares__ + [middleware_handler]
         return wrapped_handler
         
     def ensure_response(self, handler):
         try:
             headers = handler.__headers__
             routes = handler.__routes__
+            middlewares = handler.__middlewares__
             previously_wrapped = True
         except AttributeError:
             headers = {}
             routes = []
+            middlewares = []
             previously_wrapped = False
         if previously_wrapped:
             return handler
@@ -116,6 +121,7 @@ class Application(web.Application):
             return self.make_response(await handler(request), headers)
         wrapped_handler.__headers__ = headers
         wrapped_handler.__routes__ = routes
+        wrapped_handler.__middlewares__ = middlewares
         return wrapped_handler
 
     def make_response(self, value, additional_headers={}):
