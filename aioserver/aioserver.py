@@ -165,6 +165,8 @@ class Application(web.Application):
 
     def update_options(self):
         for resource in self.router.resources():
+            # remove existing OPTIONS handler
+            resource._routes[:] = [route for route in resource._routes if route.method.upper() != 'OPTIONS']
             # gather CORS parameters
             origin = None
             credentials = False
@@ -181,8 +183,9 @@ class Application(web.Application):
                     headers.update(route.handler.__headers__['Access-Control-Expose-Headers'].split(', '))
                 except KeyError:
                     pass
+                method = route.method.upper()
                 methods.add(route.method.upper())
-            if 'OPTIONS' in methods or origin is None:
+            if origin is None:
                 continue
             else:
                 methods.add('OPTIONS')
