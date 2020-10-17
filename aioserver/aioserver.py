@@ -49,6 +49,7 @@ class Application(web.Application):
             # handler middleware accepts (handler) argument and returns handler
             self.handler_middlewares.append(middleware_handler)
             self.update_handlers()
+            self.update_options()
         else:
             raise ValueError('middleware_handler function signature must be (request, handler) or (handler)')
         return middleware_handler
@@ -219,8 +220,8 @@ class Application(web.Application):
 
     @property
     def run(self):
-        self.update_options()
         self.update_handlers()
+        self.update_options()
         return partial(web.run_app, self)
 
 
