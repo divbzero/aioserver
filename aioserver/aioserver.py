@@ -48,6 +48,7 @@ class Application(web.Application):
         elif argnames[0:1] == ['handler']:
             # handler middleware accepts (handler) argument and returns handler
             self.handler_middlewares.append(middleware_handler)
+            self.update_handlers()
         else:
             raise ValueError('middleware_handler function signature must be (request, handler) or (handler)')
         return middleware_handler
