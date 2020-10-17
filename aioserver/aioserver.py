@@ -214,7 +214,7 @@ class Application(web.Application):
         for resource in self.router.resources():
             for route in resource:
                 for handler_middleware in self.handler_middlewares:
-                    route.handler = self.wrap_handler(route.handler, handler_middleware)
+                    route._handler = handler_middleware(route._handler)
 
     @property
     def run(self):
