@@ -148,3 +148,7 @@ Changelog
 
 - Package as a module instead of as a single file
 
+### v0.7.2
+
+- Update existing routes when adding new middleware
+
