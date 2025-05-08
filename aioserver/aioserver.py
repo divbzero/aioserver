@@ -173,8 +173,6 @@ class Application(web.Application):
 
     def update_options(self):
         for resource in self.router.resources():
-            # remove existing OPTIONS handler
-            resource._routes[:] = [route for route in resource._routes if route.method.upper() != 'OPTIONS']
             # gather CORS parameters
             origin = None
             credentials = False
