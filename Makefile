@@ -7,6 +7,10 @@ install: venv
 demo: install
 	. .venv/bin/activate; sed -n '/^```python/,/^```/ p' < README.md | sed '/^```/d' | python
 
+.PHONY: test
+test: install
+	. .venv/bin/activate; sed -n '/^```python/,/^```/ p' < README.md | sed '/^```/d' | python & sleep 3 ; kill $$!
+
 .PHONY: venv
 venv:
 	python3 -m venv .venv
