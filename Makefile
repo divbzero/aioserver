@@ -1,9 +1,10 @@
 .PHONY: install
 install: venv
-	. .venv/bin/activate; pip install -e .
+	. .venv/bin/activate; python3 -m pip install --upgrade pip
+	. .venv/bin/activate; python3 -m pip install -e .
 
-.PHONY: test
-test: install
+.PHONY: demo
+demo: install
 	. .venv/bin/activate; sed -n '/^```python/,/^```/ p' < README.md | sed '/^```/d' | python
 
 .PHONY: venv
